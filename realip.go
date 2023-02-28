@@ -109,7 +109,7 @@ func FromRequest(headers *fasthttp.RequestHeader) string {
 		return ip
 	}
 
-	return net.IPv4zero.String()
+	return ""
 }
 
 func fromSpecialHeaders(headers *fasthttp.RequestHeader) (string, error) {
