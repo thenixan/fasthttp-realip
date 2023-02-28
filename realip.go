@@ -79,13 +79,13 @@ func isPrivateAddress(address string) (bool, error) {
 }
 
 // FromRequest returns client's real public IP address from http request headers.
-func FromRequest(ctx *fasthttp.RequestCtx) string {
-	xClientIP := ctx.Request.Header.Peek(xClientIPHeader)
+func FromRequest(headers *fasthttp.RequestHeader) string {
+	xClientIP := headers.Peek(xClientIPHeader)
 	if xClientIP != nil {
 		return string(xClientIP)
 	}
 
-	xOriginalForwardedFor := ctx.Request.Header.Peek(xOriginalForwardedForHeader)
+	xOriginalForwardedFor := headers.Peek(xOriginalForwardedForHeader)
 	if xOriginalForwardedFor != nil {
 		requestIP, err := retrieveForwardedIP(string(xOriginalForwardedFor))
 		if err == nil {
@@ -93,7 +93,7 @@ func FromRequest(ctx *fasthttp.RequestCtx) string {
 		}
 	}
 
-	xForwardedFor := ctx.Request.Header.Peek(xForwardedForHeader)
+	xForwardedFor := headers.Peek(xForwardedForHeader)
 	if xForwardedFor != nil {
 		requestIP, err := retrieveForwardedIP(string(xForwardedFor))
 		if err == nil {
@@ -101,39 +101,31 @@ func FromRequest(ctx *fasthttp.RequestCtx) string {
 		}
 	}
 
-	if ip, err := fromSpecialHeaders(ctx); err == nil {
+	if ip, err := fromSpecialHeaders(headers); err == nil {
 		return ip
 	}
 
-	if ip, err := fromForwardedHeaders(ctx); err == nil {
+	if ip, err := fromForwardedHeaders(headers); err == nil {
 		return ip
 	}
 
-	var remoteIP string
-	remoteAddr := ctx.RemoteAddr().String()
-
-	if strings.ContainsRune(remoteAddr, ':') {
-		remoteIP, _, _ = net.SplitHostPort(remoteAddr)
-	} else {
-		remoteIP = remoteAddr
-	}
-	return remoteIP
+	return net.IPv4zero.String()
 }
 
-func fromSpecialHeaders(ctx *fasthttp.RequestCtx) (string, error) {
+func fromSpecialHeaders(headers *fasthttp.RequestHeader) (string, error) {
 	ipHeaders := [...]string{cfConnectingIPHeader, fastlyClientIPHeader, trueClientIPHeader, xRealIPHeader}
 	for _, iplHeader := range ipHeaders {
-		if clientIP := ctx.Request.Header.Peek(iplHeader); clientIP != nil {
+		if clientIP := headers.Peek(iplHeader); clientIP != nil {
 			return string(clientIP), nil
 		}
 	}
 	return "", errors.New("can't get ip from special headers")
 }
 
-func fromForwardedHeaders(ctx *fasthttp.RequestCtx) (string, error) {
+func fromForwardedHeaders(headers *fasthttp.RequestHeader) (string, error) {
 	forwardedHeaders := [...]string{xForwardedHeader, forwardedForHeader, forwardedHeader}
 	for _, forwardedHeader := range forwardedHeaders {
-		if forwarded := ctx.Request.Header.Peek(forwardedHeader); forwarded != nil {
+		if forwarded := headers.Peek(forwardedHeader); forwarded != nil {
 			if clientIP, err := retrieveForwardedIP(string(forwarded)); err == nil {
 				return clientIP, nil
 			}

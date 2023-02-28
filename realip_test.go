@@ -68,7 +68,7 @@ func TestRealIP(t *testing.T) {
 		{
 			name:     "No header",
 			request:  newRequest("144.12.54.87", map[string]string{}),
-			expected: "144.12.54.87",
+			expected: "0.0.0.0",
 		},
 		{
 			name:     "Has X-Forwarded-For",
@@ -99,8 +99,10 @@ func TestRealIP(t *testing.T) {
 
 	// Run test
 	for _, v := range testData {
-		if actual := FromRequest(v.request); v.expected != actual {
-			t.Errorf("%s: expected %s but get %s", v.name, v.expected, actual)
-		}
+		t.Run(v.name, func(t *testing.T) {
+			if actual := FromRequest(&v.request.Request.Header); v.expected != actual {
+				t.Errorf("%s: expected %s but get %s", v.name, v.expected, actual)
+			}
+		})
 	}
 }
