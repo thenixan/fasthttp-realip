@@ -1,4 +1,4 @@
-module github.com/thenixan/fast-realip
+module github.com/thenixan/fasthttp-realip
 
 go 1.12
 
